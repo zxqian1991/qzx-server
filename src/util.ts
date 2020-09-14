@@ -2,6 +2,7 @@ import { join } from "path";
 import {
   COMMON_OF_CONTROLLER_INFO,
   CONTROLLER_URL_PROPERTY_NAME,
+  SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR,
 } from "./common";
 import {
   IControllerMethodStore,
@@ -12,11 +13,17 @@ import {
  */
 export function getControllerPaths() {
   return COMMON_OF_CONTROLLER_INFO.reduce<{
-    [prop: string]: IControllerMethodObj;
+    [prop: string]: {
+      target: any;
+      methods: IControllerMethodObj;
+    };
   }>((lastv, [option, target]) => {
     const store = getControllerMethodStore(target);
     for (let url in store) {
-      lastv[join(option.path, url)] = store[url];
+      lastv[join(option.path, url)] = {
+        target,
+        methods: store[url],
+      };
     }
     return lastv;
   }, {});
@@ -36,4 +43,12 @@ export function runObjectLikeArray<T>(
   for (let i in obj) {
     handler(obj[i], i);
   }
+}
+
+export function getParamStore(target: any, propertyKey: string) {
+  return (
+    target &&
+    target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR] &&
+    target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR][propertyKey]
+  );
 }

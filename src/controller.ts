@@ -21,8 +21,10 @@ import {
 } from "./interfaces/controller";
 import {
   COMMON_OF_CONTROLLER_INFO,
-  CONTROLLER_URL_PROPERTY_NAME,
+  SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR,
 } from "./common";
+import { Context } from "koa";
+import { Injectable } from "qzx-ioc";
 
 export function Controller(option?: string | IControllerOption) {
   const tempOption =
@@ -30,6 +32,9 @@ export function Controller(option?: string | IControllerOption) {
   // 接下来要记录controller
   return (target: any) => {
     COMMON_OF_CONTROLLER_INFO.push([tempOption, target]);
+    @Injectable()
+    class temp extends target {}
+    return temp as any;
   };
 }
 
@@ -51,28 +56,56 @@ export function All(url: string) {
   return setMethod(url, ENUM_OF_METHOD_TYPE.ALL);
 }
 
-export function Query() {}
+export function Query(prop?: string) {
+  return setParams((ctx: Context) =>
+    prop ? ctx.query : ctx.query[prop as string]
+  );
+}
 
-export function Data() {}
+export function Data(prop?: string) {
+  return setParams((ctx: Context) =>
+    prop ? ctx.body : ctx.body[prop as string]
+  );
+}
 
-export function Param() {}
+export function Param(prop?: string) {
+  return setParams((ctx: Context) =>
+    prop ? ctx.params : ctx.params[prop as string]
+  );
+}
 
 /**
  * 参数装饰器  获取request参数
  */
-export function Req() {}
-
-/**
- * 参数装饰器 获取response参数
- */
-export function Res() {}
+export function Ctx() {
+  return setParams((ctx: Context) => ctx);
+}
 
 function setMethod(url: string, type: ENUM_OF_METHOD_TYPE) {
   return (target: any, key: string) => {
     const store = getControllerMethodStore(target);
-    store[url] = {
-      type,
-      propertyName: key,
-    };
+    if (!store[url]) {
+      store[url] = {};
+    }
+    store[url][type] = key;
+  };
+}
+
+function setParams(handler: (ctx: Context) => any) {
+  return (target: any, propertyKey: string, index: number) => {
+    if (!target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR]) {
+      target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR] = {};
+    }
+    if (!target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR][propertyKey]) {
+      target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR][propertyKey] = [];
+    }
+    const arr: any[] =
+      target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR][propertyKey];
+    if (index > arr.length - 1) {
+      for (let i = arr.length; i <= index; i++) {
+        arr.push([]);
+      }
+    }
+    arr[index].push(handler);
   };
 }

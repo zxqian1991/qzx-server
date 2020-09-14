@@ -2,12 +2,11 @@ import koa from "koa";
 import Router from "@koa/router";
 import { Ioc } from "qzx-ioc";
 import App from "./app";
-import { COMMON_OF_CONTROLLER_INFO } from "./common";
-import { getControllerPaths, runObjectLikeArray } from "./util";
+import { getControllerPaths, getParamStore, runObjectLikeArray } from "./util";
 import { IControllerMethodStore } from "./interfaces/controller";
 export default class Server {
   private app = Ioc(App);
-  private pathMapping: IControllerMethodStore = {};
+  private pathMapping: { target?: any; methods?: IControllerMethodStore } = {};
   constructor() {
     const app = Ioc(App);
     // 私有属性，不想对外暴露
@@ -17,23 +16,29 @@ export default class Server {
   private initRouter() {
     const router = new Router();
     this.pathMapping = getControllerPaths();
-    runObjectLikeArray(this.pathMapping, (v, k) => {
-      // router.use('sdsd', )
-      router.get(k, (c, n) => {});
-      (router as any)[v.propertyName](
-        k,
-        (
-          context: koa.ParameterizedContext<
-            any,
-            Router.RouterParamContext<any, {}>
-          >,
-          next: koa.Next
-        ) => {
-          // 获取controller对应的实例
-          // 获取参数值
-          // 执行方法
-        }
-      );
+    runObjectLikeArray(this.pathMapping.methods!, (v, k) => {
+      for (let type in v) {
+        (router as any)[type](
+          k,
+          (
+            ctx: koa.ParameterizedContext<
+              any,
+              Router.RouterParamContext<any, {}>
+            >,
+            next: koa.Next
+          ) => {
+            const propName = (v as any)[type];
+            const instance: any = Ioc(this.pathMapping.target);
+            instance[propName].apply(
+              instance,
+              getParamStore(
+                this.pathMapping.target,
+                propName
+              ).map((handler: any) => handler(ctx))
+            );
+          }
+        );
+      }
     });
     return router;
   }
