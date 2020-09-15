@@ -32,9 +32,6 @@ export function Controller(option?: string | IControllerOption) {
   // 接下来要记录controller
   return (target: any) => {
     COMMON_OF_CONTROLLER_INFO.push([tempOption, target]);
-    @Injectable()
-    class temp extends target {}
-    return temp as any;
   };
 }
 
@@ -58,19 +55,19 @@ export function All(url: string) {
 
 export function Query(prop?: string) {
   return setParams((ctx: Context) =>
-    prop ? ctx.query : ctx.query[prop as string]
+    !prop ? ctx.query : ctx.query[prop as string]
   );
 }
 
 export function Data(prop?: string) {
   return setParams((ctx: Context) =>
-    prop ? ctx.body : ctx.body[prop as string]
+    !prop ? ctx.body : ctx.body[prop as string]
   );
 }
 
 export function Param(prop?: string) {
   return setParams((ctx: Context) =>
-    prop ? ctx.params : ctx.params[prop as string]
+    !prop ? ctx.params : ctx.params[prop as string]
   );
 }
 

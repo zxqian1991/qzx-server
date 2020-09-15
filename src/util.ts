@@ -1,4 +1,5 @@
-import { join } from "path";
+import { resolve } from "url";
+import { IControllerInfo } from "./interfaces/controller";
 import {
   COMMON_OF_CONTROLLER_INFO,
   CONTROLLER_URL_PROPERTY_NAME,
@@ -12,21 +13,19 @@ import {
  * 根据所有的controller生成path和controller的对应关系
  */
 export function getControllerPaths() {
-  return COMMON_OF_CONTROLLER_INFO.reduce<{
-    [prop: string]: {
-      target: any;
-      methods: IControllerMethodObj;
-    };
-  }>((lastv, [option, target]) => {
-    const store = getControllerMethodStore(target);
-    for (let url in store) {
-      lastv[join(option.path, url)] = {
-        target,
-        methods: store[url],
-      };
-    }
-    return lastv;
-  }, {});
+  return COMMON_OF_CONTROLLER_INFO.reduce<IControllerInfo>(
+    (lastv, [option, target]) => {
+      const store = getControllerMethodStore(target.prototype);
+      for (let url in store) {
+        lastv[resolve(option.path, url)] = {
+          target,
+          methods: store[url],
+        };
+      }
+      return lastv;
+    },
+    {}
+  );
 }
 
 export function getControllerMethodStore(target: any): IControllerMethodStore {
@@ -47,8 +46,9 @@ export function runObjectLikeArray<T>(
 
 export function getParamStore(target: any, propertyKey: string) {
   return (
-    target &&
-    target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR] &&
-    target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR][propertyKey]
+    (target &&
+      target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR] &&
+      target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR][propertyKey]) ||
+    []
   );
 }

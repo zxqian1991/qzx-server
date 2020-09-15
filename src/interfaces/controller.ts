@@ -2,6 +2,13 @@ export interface IControllerOption {
   path: string;
 }
 
+export interface IControllerInfo {
+  [prop: string]: {
+    target: any;
+    methods: IControllerMethodObj;
+  };
+}
+
 export interface IControllerMethodStore {
   [prop: string]: IControllerMethodObj;
 }
@@ -18,4 +25,8 @@ export enum ENUM_OF_METHOD_TYPE {
   DELETE = "delete",
   PUT = "put",
   ALL = "all",
+}
+
+export interface IServerOption {
+  controllers: Array<object>;
 }
