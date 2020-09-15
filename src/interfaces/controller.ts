@@ -1,3 +1,5 @@
+import Application from "koa";
+
 export interface IControllerOption {
   path: string;
 }
@@ -28,5 +30,12 @@ export enum ENUM_OF_METHOD_TYPE {
 }
 
 export interface IServerOption {
-  controllers: Array<object>;
+  controllers?: Array<object>;
+  plugins?: Array<Application.Middleware>;
+  defaultPlugins?: {
+    logger: Application.Middleware;
+    body: Application.Middleware;
+  };
+  host?: string;
+  port?: number;
 }
