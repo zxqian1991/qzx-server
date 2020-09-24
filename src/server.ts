@@ -11,7 +11,7 @@ import {
 } from "./util";
 import { IServerOption } from "./interfaces/controller";
 import { IControllerInfo } from "./interfaces/controller";
-export default class Server {
+export class Server {
   private app!: koa;
   private option: IServerOption = {};
   private pathMapping: IControllerInfo = {};
