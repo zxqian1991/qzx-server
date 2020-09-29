@@ -3,20 +3,20 @@ import Router from "@koa/router";
 import logger from "koa-logger";
 import koaBody from "koa-body";
 import "colors";
-import {
-  getControllerPaths,
-  getIPAdress,
-  getTargetConstructorParamInsts,
-  initPathMapping,
-} from "./util";
+import { getControllerPaths, getIPAdress, initPathMapping } from "./util";
 import { IServerOption } from "./interfaces/controller";
 import { IControllerInfo } from "./interfaces/controller";
 export class Server {
   private app!: koa;
-  private option: IServerOption = {};
+  private option: IServerOption | undefined;
   private pathMapping: IControllerInfo = {};
   constructor(option?: IServerOption) {
-    this.option = option || {};
+    this.option = Object.assign(
+      {
+        transform: (v: any) => v,
+      },
+      option
+    );
     this.app = new koa();
   }
 
@@ -31,17 +31,27 @@ export class Server {
   private initController() {
     const router = this.initRouter();
     this.setPlugins();
+    // 放在controller之前
+    this.app.use(async (ctx, next) => {
+      const res = this.option!.transform!(await next());
+      if (res !== undefined) {
+        ctx.body = res;
+      }
+    });
     this.app.use(router.routes()).use(router.allowedMethods());
   }
 
   private setPlugins() {
-    this.app.use(this.option.defaultPlugins?.logger || logger());
-    this.app.use(this.option.defaultPlugins?.body || koaBody());
-    (this.option.plugins || []).forEach((plugin) => this.app.use(plugin));
+    this.app.use(this.option?.defaultPlugins?.logger || logger());
+    this.app.use(this.option?.defaultPlugins?.body || koaBody());
+    this.option?.plugins?.forEach((plugin) => this.app.use(plugin));
   }
 
   // 启动
-  start(port: number = 8080, host: string = "0.0.0.0") {
+  start(
+    port: number = this.option?.port || 8080,
+    host: string = this.option?.host || "0.0.0.0"
+  ) {
     this.initController();
     this.app.listen(port, host);
     console.log(

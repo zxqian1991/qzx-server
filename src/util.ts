@@ -7,10 +7,7 @@ import {
   CONTROLLER_URL_PROPERTY_NAME,
   SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR,
 } from "./common";
-import {
-  IControllerMethodStore,
-  IControllerMethodObj,
-} from "./interfaces/controller";
+import { IControllerMethodStore } from "./interfaces/controller";
 import { Ioc } from "qzx-ioc";
 import { Context } from "vm";
 /**
@@ -66,7 +63,7 @@ export function getTargetConstructorParamInsts(target: any) {
 export function initPathMapping(pathMapping: IControllerInfo, router: Router) {
   runObjectLikeArray(pathMapping, (v, k) => {
     for (let type in v.methods) {
-      (router as any)[type](k, async (ctx: Context, next: koa.Next) => {
+      (router as any)[type](k, async (ctx: Context) => {
         const propName = (v.methods as any)[type];
         const instance: any = new v.target(
           ...getTargetConstructorParamInsts(v.target)

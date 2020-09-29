@@ -1,0 +1,11 @@
+{
+  "restartable": "rs",
+  "ignore": [".git", ".svn", "node_modules/**/node_modules"],
+  "verbose": true,
+  "execMap": {
+    "js": "node --harmony"
+  },
+  "watch": ["src/**/**.ts"],
+  "exec": "ts-node src/test",
+  "ext": "js json ts"
+}

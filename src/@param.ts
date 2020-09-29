@@ -1,4 +1,5 @@
 import { Context } from "koa";
+import { Ioc } from "qzx-ioc";
 import { SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR } from "./common";
 
 export function Query(prop?: string) {
@@ -19,7 +20,13 @@ export function Param(prop?: string) {
   );
 }
 
-function setParams(handler: (ctx: Context) => any) {
+export function Inject() {
+  return setParams((ctx: Context, type: any) => {
+    return Ioc(type);
+  });
+}
+
+function setParams(handler: (ctx: Context, type: any) => any) {
   return (target: any, propertyKey: string, index: number) => {
     if (!target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR]) {
       target[SYMBOL_OF_CONTROLLER_PROPERY_DECORATOR] = {};
@@ -34,6 +41,8 @@ function setParams(handler: (ctx: Context) => any) {
         arr.push([]);
       }
     }
-    arr[index].push(handler);
+    const types = Reflect.getMetadata("design:paramtypes", target, propertyKey);
+    const type = types[index];
+    arr[index].push((ctx: Context) => handler(ctx, type));
   };
 }

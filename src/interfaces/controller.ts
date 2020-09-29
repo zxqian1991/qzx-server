@@ -36,6 +36,7 @@ export interface IServerOption {
     logger: Application.Middleware;
     body: Application.Middleware;
   };
+  transform?: (v: any) => any;
   host?: string;
   port?: number;
 }
