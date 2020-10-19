@@ -12,9 +12,9 @@ export class AAA {
 
 @Controller("/")
 class A {
+  constructor(private aaa: AAA) {}
   @Get("/:id")
   async qzx(@Inject() aaa: AAA) {
-    console.log(aaa);
     return 123;
   }
 }

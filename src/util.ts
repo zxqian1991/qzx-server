@@ -1,6 +1,5 @@
-import koa from "koa";
+import { Context } from "koa";
 import Router from "@koa/router";
-import { resolve } from "url";
 import { IControllerInfo } from "./interfaces/controller";
 import {
   COMMON_OF_CONTROLLER_INFO,
@@ -9,7 +8,11 @@ import {
 } from "./common";
 import { IControllerMethodStore } from "./interfaces/controller";
 import { Ioc } from "qzx-ioc";
-import { Context } from "vm";
+
+export function join(p1: string, p2: string) {
+  return `${p1}/${p2}`.replace(/(?<!https:)\/{2,}/gi, "/");
+}
+
 /**
  * 根据所有的controller生成path和controller的对应关系
  */
@@ -18,7 +21,7 @@ export function getControllerPaths() {
     (lastv, [option, target]) => {
       const store = getControllerMethodStore(target.prototype);
       for (let url in store) {
-        lastv[resolve(option.path, url)] = {
+        lastv[join(option.path, url)] = {
           target,
           methods: store[url],
         };
