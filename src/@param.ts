@@ -20,6 +20,18 @@ export function Param(prop?: string) {
   );
 }
 
+export function Ctx() {
+  return setParams((ctx: Context) => ctx);
+}
+
+export function Res() {
+  return setParams((ctx: Context) => ctx.response);
+}
+
+export function req() {
+  return setParams((ctx: Context) => ctx.request);
+}
+
 export function Inject() {
   return setParams((ctx: Context, type: any) => {
     return Ioc(type);
