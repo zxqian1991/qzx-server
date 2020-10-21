@@ -10,7 +10,7 @@ export function Query(prop?: string) {
 
 export function Data(prop?: string) {
   return setParams((ctx: Context) =>
-    !prop ? ctx.body : ctx.body[prop as string]
+    !prop ? ctx.request.body : ctx.request.body[prop as string]
   );
 }
 
