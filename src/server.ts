@@ -1,7 +1,5 @@
 import koa from "koa";
 import Router from "@koa/router";
-import logger from "koa-logger";
-import koaBody from "koa-body";
 import "colors";
 import { getControllerPaths, getIPAdress, initPathMapping } from "./util";
 import { IServerOption } from "./interfaces/controller";
@@ -23,7 +21,7 @@ export class Server {
   // 初始化路由
   private initRouter() {
     const router = new Router();
-    this.pathMapping = getControllerPaths();
+    this.pathMapping = getControllerPaths(this.option?.prefix);
     initPathMapping(this.pathMapping, router);
     return router;
   }
@@ -42,9 +40,7 @@ export class Server {
   }
 
   private setPlugins() {
-    this.app.use(this.option?.defaultPlugins?.logger || logger());
-    this.app.use(this.option?.defaultPlugins?.body || koaBody());
-    this.option?.plugins?.forEach((plugin) => this.app.use(plugin));
+    this.option?.plugins?.forEach((plugin) => this.app.use(plugin(this.app)));
   }
 
   // 启动

@@ -10,7 +10,9 @@ export function Query(prop?: string) {
 
 export function Data(prop?: string) {
   return setParams((ctx: Context) =>
-    !prop ? ctx.request.body : ctx.request.body[prop as string]
+    !prop
+      ? (ctx.request as any).body
+      : (ctx.request as any).body[prop as string]
   );
 }
 
@@ -36,6 +38,10 @@ export function Inject() {
   return setParams((ctx: Context, type: any) => {
     return Ioc(type);
   });
+}
+
+export function Files(property: string = "files") {
+  return setParams((ctx: Context) => (ctx.request as any)?.files?.[property]);
 }
 
 function setParams(handler: (ctx: Context, type: any) => any) {

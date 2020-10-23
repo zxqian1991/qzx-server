@@ -16,12 +16,15 @@ export function join(p1: string, p2: string) {
 /**
  * 根据所有的controller生成path和controller的对应关系
  */
-export function getControllerPaths() {
+export function getControllerPaths(prefix: string = "/") {
   return COMMON_OF_CONTROLLER_INFO.reduce<IControllerInfo>(
     (lastv, [option, target]) => {
       const store = getControllerMethodStore(target.prototype);
+      const realPath = option.notUsePrefix
+        ? option.path
+        : join(prefix, option.path);
       for (let url in store) {
-        lastv[join(option.path, url)] = {
+        lastv[join(realPath, url)] = {
           target,
           methods: store[url],
         };
