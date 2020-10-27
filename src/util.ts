@@ -9,6 +9,8 @@ import {
 import { IControllerMethodStore } from "./interfaces/controller";
 import { Ioc } from "qzx-ioc";
 
+const CTX_SYMBOL = Symbol("ctx");
+
 export function join(p1: string, p2: string) {
   return `${p1}/${p2}`.replace(/(?<!https:)\/{2,}/gi, "/");
 }
@@ -74,6 +76,7 @@ export function initPathMapping(pathMapping: IControllerInfo, router: Router) {
         const instance: any = new v.target(
           ...getTargetConstructorParamInsts(v.target)
         );
+        instance[CTX_SYMBOL] = ctx;
         const params = getParamStore(instance, propName).map(
           (handlers: Array<(ctx: Context, _v?: any) => any>) => {
             const t = handlers.reduce(
@@ -104,4 +107,8 @@ export function getIPAdress() {
       }
     }
   }
+}
+
+export function getCtx<T>(ins: T): Context {
+  return ins && (ins as any)[CTX_SYMBOL];
 }
