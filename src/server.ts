@@ -12,6 +12,9 @@ export interface ServerOption {
     prefix?: string;
 }
 export class Server {
+    getApp() {
+        return this.app;
+    }
     private app = new koa();
     private router?: Router;
     private getPort() {
