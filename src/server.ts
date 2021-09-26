@@ -7,9 +7,15 @@ import bodyParser from 'koa-bodyparser';
 export interface ServerOption {
     host?: string;
     port?: number;
-    plugins?: koa.Middleware[];
+    plugins?: ((app: koa) => koa.Middleware)[];
     controllers?: (new (...args: any[]) => any)[];
     prefix?: string;
+    filters?: ((ctx: {
+        getMetadata: <T>(key: string) => T; // 获取metadata
+        method: METHOD_TYPE; // 方法
+        path: string;
+        context: koa.Context;
+    }) => boolean)[];
 }
 export class Server {
     getApp() {
@@ -38,21 +44,32 @@ export class Server {
         analyseController(controller, (type, path, h) => {
             switch (type) {
                 case METHOD_TYPE.GET:
-                    this.router?.get(path, (ctx, next) => h(ctx, next));
+                    this.router?.get(path, (c, n) =>
+                        h(
+                            c,
+                            n,
+                            this.option.filters
+                                ? (c) =>
+                                      this.option.filters!.every((filter) =>
+                                          filter(c)
+                                      )
+                                : undefined
+                        )
+                    );
                     break;
                 case METHOD_TYPE.POST:
-                    this.router?.post(path, (ctx, next) => h(ctx, next));
+                    this.router?.post(path, h);
                 case METHOD_TYPE.DELETE:
-                    this.router?.delete(path, (ctx, next) => h(ctx, next));
+                    this.router?.delete(path, h);
                 default:
-                    this.router?.use((ctx, next) => h(ctx, next));
+                    this.router?.use(h);
             }
         });
     }
 
     private initPlugins() {
         const plugins = this.getPlugins();
-        plugins.forEach((plugin) => this.app.use(plugin));
+        plugins.forEach((plugin) => this.app.use(plugin(this.app)));
     }
     constructor(private option: ServerOption = {}) {
         this.option = Object.assign(

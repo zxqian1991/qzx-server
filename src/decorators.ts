@@ -8,7 +8,7 @@ import {
     ControllerInfo,
 } from './common';
 import 'reflect-metadata';
-import { ParamInfo } from './common';
+import { ParamInfo, SET_METADATA } from './common';
 
 /**
  * 将注解的信息保存在  CONTROLLER_URL_PATH   中
@@ -32,12 +32,38 @@ export function Controller<T extends new (...args: any[]) => any>(
     };
 }
 
+export function SetMetadata(key: string, value: any) {
+    return (
+        target: Object,
+        property: string,
+        descriptor: PropertyDescriptor
+    ) => {
+        if (!Reflect.hasMetadata(SET_METADATA, target)) {
+            Reflect.defineMetadata(SET_METADATA, {}, target);
+        }
+        const data = Reflect.getMetadata(SET_METADATA, target) as Record<
+            string,
+            {
+                [prop: string]: any;
+            }
+        >;
+        if (!data[property]) {
+            data[property] = {};
+        }
+        data[property][key] = value;
+    };
+}
+
 export function Get(path: string = '') {
     return methodSet(path, METHOD_TYPE.GET);
 }
 
 export function Post(path: string = '') {
     return methodSet(path, METHOD_TYPE.POST);
+}
+
+export function All(path: string = '') {
+    return methodSet(path, METHOD_TYPE.ALL);
 }
 
 /**

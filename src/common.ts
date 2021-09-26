@@ -3,11 +3,13 @@ import { Ioc } from './Injectable';
 export const CONTROLLER_URL_PATH = Symbol();
 export const METHOD_METADATA = Symbol();
 export const PARAM_METADATA = Symbol();
+export const SET_METADATA = Symbol();
 
 export enum METHOD_TYPE {
-    GET,
-    POST,
-    DELETE,
+    ALL = 'ALL',
+    GET = 'GET',
+    POST = 'POST',
+    DELETE = 'DELETE',
 }
 
 export enum PARAM_TYPE {
@@ -40,7 +42,16 @@ export function analyseController(
     onPath: (
         type: METHOD_TYPE,
         path: string,
-        h: (ctx: koa.Context, next: koa.Next) => any
+        h: (
+            ctx: koa.Context,
+            next: koa.Next,
+            filter?: (ctx: {
+                getMetadata: <T>(key: string) => T; // 获取metadata
+                method: METHOD_TYPE; // 方法
+                path: string;
+                context: koa.Context;
+            }) => boolean
+        ) => any
     ) => any
 ) {
     const controllerInfo = getControllerInfo(controller);
@@ -52,8 +63,21 @@ export function analyseController(
             controllerInfo.url || '/',
             methodInfo.path || '/'
         );
-        onPath(methodInfo.method, path, async (ctx) => {
-            //
+        const metainfos = getMetaDatas(controller, methodInfo.property);
+        onPath(methodInfo.method, path, async (ctx, next, filter) => {
+            if (
+                filter &&
+                !filter({
+                    getMetadata: <T>(key: string) =>
+                        metainfos?.[key] as unknown as T,
+                    method: methodInfo.method,
+                    path: methodInfo.path,
+                    context: ctx,
+                })
+            ) {
+                await next();
+                return;
+            }
             const instance = getControllerInstance(controller);
             if (
                 !instance[methodInfo.property] ||
@@ -121,4 +145,16 @@ function getParamsInfos(controller: new (...args: any[]) => any) {
         [prop: string]: ParamInfo[];
     };
     return paramInfos || {};
+}
+
+function getMetaDatas(
+    controller: new (...args: any[]) => any,
+    property: string
+) {
+    const prototype = controller.prototype;
+    const metadatas = Reflect.getMetadata(SET_METADATA, prototype) as Record<
+        string,
+        any
+    >;
+    return metadatas?.[property];
 }
