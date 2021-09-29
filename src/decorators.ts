@@ -1,143 +1,76 @@
-import {
-    CONTROLLER_URL_PATH,
-    METHOD_METADATA,
-    PARAM_METADATA,
-    MethodInfo,
-    METHOD_TYPE,
-    PARAM_TYPE,
-    ControllerInfo,
-} from './common';
 import 'reflect-metadata';
-import { ParamInfo, SET_METADATA } from './common';
+import {
+    createClassDecorator,
+    createParamDecorator,
+    createPropertyDecorator,
+} from 'qzx-decorator';
 
 /**
- * 将注解的信息保存在  CONTROLLER_URL_PATH   中
- * @param option \
+ * 依赖注入
+ * @param option
  * @returns
  */
-export function Controller<T extends new (...args: any[]) => any>(
-    option: ControllerInfo['url'] | ControllerInfo = {}
-) {
-    return (target: T) => {
-        const prototype = target.prototype;
-        const paramsTypes =
-            Reflect.getMetadata('design:paramtypes', target) || [];
-        Reflect.defineMetadata(
-            CONTROLLER_URL_PATH,
-            typeof option === 'string'
-                ? { url: option, paramsTypes }
-                : Object.assign({ url: '/', paramsTypes }, option || {}),
-            prototype
-        );
-    };
+export const Injectable = (option: { bootstrap?: boolean } = {}) =>
+    createClassDecorator('injectable', (args, target, params) => {})(option);
+const InjectableInstance = new WeakMap<any, any>();
+export function Ioc<T>(
+    constructor: T
+): T extends new (...args: any[]) => infer D ? D : T {
+    if (InjectableInstance.has(constructor))
+        return InjectableInstance.get(constructor);
+    if (!constructor || typeof constructor !== 'function') {
+        return constructor as any;
+    }
+    const params = (
+        (Reflect.getMetadata('design:paramtypes', constructor) as any[]) || []
+    ).map((c) => Ioc(c));
+    const instance = new (constructor as any)(...params);
+    InjectableInstance.set(constructor, instance);
+    return instance;
 }
 
-export function SetMetadata(key: string, value: any) {
-    return (
-        target: Object,
-        property: string,
-        descriptor: PropertyDescriptor
-    ) => {
-        if (!Reflect.hasMetadata(SET_METADATA, target)) {
-            Reflect.defineMetadata(SET_METADATA, {}, target);
-        }
-        const data = Reflect.getMetadata(SET_METADATA, target) as Record<
-            string,
-            {
-                [prop: string]: any;
+export const Controller = (path: string = '/') =>
+    createClassDecorator('controller')(path);
+export const Get = (path: string = '/') =>
+    createPropertyDecorator('method')('get', path);
+export const Post = (path: string = '/') =>
+    createPropertyDecorator('method')('post', path);
+export const Delete = (path: string = '/') =>
+    createPropertyDecorator('method')('delete', path);
+export const All = (path: string = '/') =>
+    createPropertyDecorator('method')('all', path);
+
+const metadataMap = new WeakMap<any, Map<string, any>>();
+export const SetMetadata = (name: string, value: any) =>
+    createPropertyDecorator(
+        'set:metadata',
+        ([name, value], target, property, desc) => {
+            if (!metadataMap.has(target)) {
+                metadataMap.set(target, new Map());
             }
-        >;
-        if (!data[property]) {
-            data[property] = {};
-        }
-        data[property][key] = value;
-    };
-}
+            if (!metadataMap.get(target)?.has(property)) {
+                metadataMap.get(target)?.set(property, {});
+            }
+            metadataMap.get(target)!.get(property)![name] = value;
+        },
+        false
+    )(name, value);
+export const GetMetadata = (
+    target: Record<string, any>,
+    property: string,
+    name: string
+) => {
+    return metadataMap.get(target)?.get(property)[name];
+};
+export const Ctx = () => createParamDecorator('param')('ctx');
+export const Param = (property?: string) =>
+    createParamDecorator('param')('param', property);
+export const Query = (property?: string) =>
+    createParamDecorator('param')('query', property);
+export const Body = (property?: string) =>
+    createParamDecorator('param')('body', property);
 
-export function Get(path: string = '') {
-    return methodSet(path, METHOD_TYPE.GET);
-}
-
-export function Post(path: string = '') {
-    return methodSet(path, METHOD_TYPE.POST);
-}
-
-export function All(path: string = '') {
-    return methodSet(path, METHOD_TYPE.ALL);
-}
-
-/**
- * 将所有的方法信息保存到   METHOD_METADATA   中去
- * 每个item记录 方法类型 属性名称 和允许的路径
- * @param path
- * @param method
- * @returns
- */
-function methodSet(path: string, method: METHOD_TYPE) {
-    return (
-        target: Object,
-        property: string,
-        descriptor: PropertyDescriptor
-    ) => {
-        if (!Reflect.hasMetadata(METHOD_METADATA, target)) {
-            Reflect.defineMetadata(METHOD_METADATA, [], target);
-        }
-        const data = Reflect.getMetadata(
-            METHOD_METADATA,
-            target
-        ) as MethodInfo[];
-        data.push({
-            property,
-            method,
-            path,
-        });
-        // 存储属性名称
-    };
-}
-export function Ctx() {
-    return ParamsSet(PARAM_TYPE.CTX);
-}
-
-export function Body() {
-    return ParamsSet(PARAM_TYPE.BODY);
-}
-
-export function Query() {
-    return ParamsSet(PARAM_TYPE.QUERY);
-}
-
-export function Param() {
-    return ParamsSet(PARAM_TYPE.PARAM);
-}
-
-/**
- * 将参数的数据放入 PARAM_METADATA 中去
- * PARAM_METADATA 中存放的是一个对象  属性是有参数的控制的方法的名称 值就是每个参数的属性
- * 属性包括参数类型 值类型 和所在位置
- * @param type
- * @returns
- */
-function ParamsSet(type: PARAM_TYPE) {
-    return (target: any, property: string, index: number) => {
-        if (!Reflect.hasMetadata(PARAM_METADATA, target)) {
-            Reflect.defineMetadata(PARAM_METADATA, {}, target);
-        }
-        const obj: {
-            [prop: string]: ParamInfo[];
-        } = Reflect.getMetadata(PARAM_METADATA, target);
-        if (!obj[property]) {
-            obj[property] = [];
-        }
-        // 获取类型
-        const paramType = Reflect.getMetadata(
-            'design:paramtypes',
-            target,
-            property
-        )[index];
-        obj[property][index] = {
-            type,
-            paramType,
-            index,
-        };
-    };
-}
+export const File = (name = 'file') =>
+    createParamDecorator('param')('file', name);
+export const Files = (name = 'files') =>
+    createParamDecorator('param')('files', name);
