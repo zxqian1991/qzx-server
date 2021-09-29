@@ -78,29 +78,10 @@ export class Server {
             decorators.length <= 0
                 ? undefined
                 : decorators
-                      .filter((i) => i.name === 'param')
-                      .reduce<any>((lv, dec) => {
-                          const type = dec.args[0];
-                          const option = dec.args[1];
-                          switch (type) {
-                              case 'param':
-                                  return option
-                                      ? ctx.params?.[option]
-                                      : ctx.params;
-                              case 'query':
-                                  return option
-                                      ? ctx.query?.[option]
-                                      : ctx.query;
-                              case 'body':
-                                  return option
-                                      ? (ctx.body as any)?.[option]
-                                      : ctx.body;
-                              case 'file':
-                                  return (ctx.request as any)?.files?.[
-                                      option
-                                  ][0];
-                              case 'files':
-                                  return (ctx.request as any)?.files?.[option];
+                      //   .filter((i) => i.name === 'param')
+                      .reduce<any>((lv, decorator) => {
+                          if (decorator.handler) {
+                              return decorator.handler(decorator, lv)?.(ctx);
                           }
                           return lv;
                       }, undefined)
@@ -112,7 +93,6 @@ export class Server {
         url: string
     ) {
         return async (context: koa.Context, next: koa.Next) => {
-            console.log(this.option.filters);
             if (
                 this.option.filters &&
                 this.option.filters.length > 0 &&

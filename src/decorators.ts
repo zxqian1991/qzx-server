@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import koa from 'koa';
 import {
     createClassDecorator,
     createParamDecorator,
@@ -11,7 +12,11 @@ import {
  * @returns
  */
 export const Injectable = (option: { bootstrap?: boolean } = {}) =>
-    createClassDecorator('injectable', (args, target, params) => {})(option);
+    createClassDecorator('injectable', (info) => {
+        if (option.bootstrap) {
+            Ioc(info.constructor);
+        }
+    })(option);
 const InjectableInstance = new WeakMap<any, any>();
 export function Ioc<T>(
     constructor: T
@@ -44,7 +49,7 @@ const metadataMap = new WeakMap<any, Map<string, any>>();
 export const SetMetadata = (name: string, value: any) =>
     createPropertyDecorator(
         'set:metadata',
-        ([name, value], target, property, desc) => {
+        ({ target, property }) => {
             if (!metadataMap.has(target)) {
                 metadataMap.set(target, new Map());
             }
@@ -60,17 +65,37 @@ export const GetMetadata = (
     property: string,
     name: string
 ) => {
-    return metadataMap.get(target)?.get(property)[name];
+    return metadataMap.get(target)?.get(property)?.[name];
 };
-export const Ctx = () => createParamDecorator('param')('ctx');
+export const Ctx = () =>
+    createParamDecorator('param', () => (ctx: koa.Context) => {
+        return ctx;
+    })('ctx');
 export const Param = (property?: string) =>
-    createParamDecorator('param')('param', property);
+    createParamDecorator(
+        'param',
+        () => (ctx: koa.Context) =>
+            property ? ctx.params?.[property] : ctx.params
+    )('param', property);
 export const Query = (property?: string) =>
-    createParamDecorator('param')('query', property);
+    createParamDecorator(
+        'param',
+        () => (ctx: koa.Context) => property ? ctx.query[property] : ctx.query
+    )('query', property);
 export const Body = (property?: string) =>
-    createParamDecorator('param')('body', property);
+    createParamDecorator(
+        'param',
+        () => (ctx: koa.Context) =>
+            property ? ctx.request.body?.[property] : ctx.request.body
+    )('body', property);
 
 export const File = (name = 'file') =>
-    createParamDecorator('param')('file', name);
+    createParamDecorator(
+        'param',
+        () => (ctx: koa.Context) => (ctx.request as any).files?.[name]
+    )('file', name);
 export const Files = (name = 'files') =>
-    createParamDecorator('param')('files', name);
+    createParamDecorator(
+        'param',
+        () => (ctx: koa.Context) => (ctx.request as any).files?.[name]
+    )('files', name);
