@@ -1,7 +1,6 @@
 import koa from 'koa';
-
 import Router from 'koa-router';
-import bodyParser from 'koa-bodyparser';
+import koaBody from 'koa-body';
 
 import {
     getClassDecoratorInfos,
@@ -27,6 +26,7 @@ export interface ServerOption {
     controllers?: (new (...args: any[]) => any)[];
     prefix?: string;
     filters?: ServerFilter[];
+    bodyParser?: koaBody.IKoaBodyOptions;
 }
 export class Server {
     getApp() {
@@ -113,10 +113,11 @@ export class Server {
             ) {
                 return next();
             }
-            const params = Reflect.getMetadata(
-                'design:paramtypes',
-                controller
-            ) as Array<any>;
+            const params =
+                (Reflect.getMetadata(
+                    'design:paramtypes',
+                    controller
+                ) as Array<any>) || [];
             const instance = new controller(...params.map((p) => Ioc(p)));
             if (typeof instance[propertyInfo.property] !== 'function') {
                 await next();
@@ -218,7 +219,9 @@ export class Server {
         });
     }
     start() {
-        this.app.use(bodyParser());
+        this.app.use(
+            koaBody(Object.assign({ multipart: true }, this.option.bodyParser))
+        );
         this.initPlugins();
         this.initControllers();
         this.app.use(this.router!.routes()).use(this.router!.allowedMethods());
